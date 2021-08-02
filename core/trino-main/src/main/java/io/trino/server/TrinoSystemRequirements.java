@@ -36,6 +36,7 @@ final class TrinoSystemRequirements
 {
     private static final int MIN_FILE_DESCRIPTORS = 4096;
     private static final int RECOMMENDED_FILE_DESCRIPTORS = 8192;
+    private static boolean DEV_ON_WINDOWS = true;
 
     private TrinoSystemRequirements() {}
 
@@ -87,7 +88,9 @@ final class TrinoSystemRequirements
             }
         }
         else {
-            failRequirement("Trino requires Linux or Mac OS X (found %s)", osName);
+            if(!DEV_ON_WINDOWS){
+                failRequirement("Trino requires Linux or Mac OS X (found %s)", osName);
+            }
         }
     }
 
@@ -121,7 +124,11 @@ final class TrinoSystemRequirements
         OptionalLong maxFileDescriptorCount = getMaxFileDescriptorCount();
         if (maxFileDescriptorCount.isEmpty()) {
             // This should never happen since we have verified the OS and JVM above
-            failRequirement("Cannot read OS file descriptor limit");
+            if(DEV_ON_WINDOWS){
+                maxFileDescriptorCount = OptionalLong.of(MIN_FILE_DESCRIPTORS);
+            }else{
+                failRequirement("Cannot read OS file descriptor limit");
+            }
         }
         if (maxFileDescriptorCount.getAsLong() < MIN_FILE_DESCRIPTORS) {
             failRequirement("Trino requires at least %s file descriptors (found %s)", MIN_FILE_DESCRIPTORS, maxFileDescriptorCount.getAsLong());
